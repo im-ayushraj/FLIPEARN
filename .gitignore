@@ -1,0 +1,51 @@
+# Node
+node_modules/
+**/node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build / output
+dist/
+build/
+.vite/
+out/
+public/build/
+
+# Environment files (ignore all .env variants)
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+.env.test
+.envrc
+
+# Dependency directories for subprojects
+client/node_modules/
+server/node_modules/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Misc
+.cache/
+.parcel-cache/
+*.tgz
+*.tmp

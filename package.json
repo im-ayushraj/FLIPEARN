@@ -1,0 +1,42 @@
+{
+  "dependencies": {
+    "@clerk/express": "^2.1.7",
+    "@prisma/client": "^7.8.0",
+    "@tailwindcss/vite": "^4.2.2",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.1",
+    "express-async-errors": "^3.1.1",
+    "helmet": "^8.1.0",
+    "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "prisma": "^7.8.0",
+    "tailwindcss": "^4.2.2"
+  },
+  "name": "flipearn",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev":    "concurrently --names CLIENT,SERVER --prefix-colors cyan,yellow \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+    "client": "npm run dev --prefix client",
+    "server": "npm run dev --prefix server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/im-ayushraj/FLIPEARN.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/im-ayushraj/FLIPEARN/issues"
+  },
+  "homepage": "https://github.com/im-ayushraj/FLIPEARN#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.14"
+  }
+}
