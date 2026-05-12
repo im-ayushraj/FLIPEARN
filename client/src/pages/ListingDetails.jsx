@@ -81,7 +81,7 @@ const ListingDetails = () => {
   const prevImage = () => setLightboxIndex(i => (i - 1 + listing.images.length) % listing.images.length);
   const nextImage = () => setLightboxIndex(i => (i + 1) % listing.images.length);
 
-  const handleBuy = () => { if (!user) { openSignIn(); return; } /* future: initiate checkout */ };
+  const handleBuy = () => navigate(`/checkout/${listing.id}`);
   const handleMessage = () => { if (!user) { openSignIn(); return; } navigate('/messages'); };
 
   const profileLink = getProfileLink(listing.platform, listing.username);

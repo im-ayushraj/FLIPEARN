@@ -12,7 +12,17 @@ const isTransactionUnsupported = (error) => {
   );
 };
 
+const isLocalMongoDB = () => {
+  const host = mongoose.connection.host;
+  return host === '127.0.0.1' || host === 'localhost' || host?.includes('127.0.0.1');
+};
+
 export const runWithOptionalTransaction = async (operation) => {
+  // Skip transactions entirely for local MongoDB
+  if (isLocalMongoDB()) {
+    return operation();
+  }
+
   const session = await mongoose.startSession();
 
   try {

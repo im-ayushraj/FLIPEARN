@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import Listing from '../models/Listing.js';
+import { Credential } from '../models/Finance.js';
 import { uploadBuffer } from '../lib/cloudinary.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -127,8 +128,23 @@ router.post('/', requireAuth, upload.array('images', 4), async (req, res) => {
     title, platform, username, niche,
     followers_count, engagement_rate, monthly_views,
     age_range, country, price, description,
-    monetized, featured,
+    monetized, featured, originalCredential,
   } = req.body;
+
+  // Parse credentials
+  let parsedCredentials = [];
+  if (originalCredential) {
+    try {
+      parsedCredentials = JSON.parse(originalCredential);
+      if (!Array.isArray(parsedCredentials)) parsedCredentials = [];
+    } catch (err) {
+      return res.status(400).json({ error: 'Invalid credentials format' });
+    }
+  }
+
+  if (parsedCredentials.length === 0) {
+    return res.status(400).json({ error: 'At least one credential is required' });
+  }
 
   const listing = await Listing.create({
     ownerId:         req.auth.userId,
@@ -146,6 +162,12 @@ router.post('/', requireAuth, upload.array('images', 4), async (req, res) => {
     monetized:       monetized === 'true',
     featured:        featured  === 'true',
     images:          imageUrls,
+  });
+
+  // Create credential record
+  await Credential.create({
+    listingId: listing._id,
+    originalCredential: parsedCredentials,
   });
 
   res.status(201).json({ ...listing.toObject(), id: listing._id });

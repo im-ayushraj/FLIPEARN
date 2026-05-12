@@ -4,6 +4,7 @@ import Listing from '../models/Listing.js';
 import User from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 import { runWithOptionalTransaction } from '../lib/mongoTransaction.js';
+import { sendOrderConfirmationEmail } from '../lib/email.js';
 
 const router = Router();
 
@@ -106,6 +107,23 @@ router.post('/:id/confirm', requireAuth, async (req, res) => {
     await Listing.findByIdAndUpdate(transaction.listingId, { $set: { status: 'sold' } }, options);
     await User.findByIdAndUpdate(transaction.ownerId, { $inc: { earned: sellerEarning } }, options);
   });
+
+  const [buyer, credential, listing] = await Promise.all([
+    User.findById(req.auth.userId),
+    Credential.findOne({ listingId: transaction.listingId }),
+    Listing.findById(transaction.listingId).lean(),
+  ]);
+
+  try {
+    await sendOrderConfirmationEmail({
+      buyer,
+      listing,
+      transaction,
+      credential,
+    });
+  } catch (emailError) {
+    console.error('Email confirmation failed:', emailError);
+  }
 
   res.json({ success: true, message: 'Payment confirmed' });
 });

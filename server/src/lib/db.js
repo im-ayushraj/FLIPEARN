@@ -27,6 +27,7 @@ const connectWithUri = (uri) => mongoose.connect(uri, {
   connectTimeoutMS: 10000,
   maxPoolSize: 20,
   family: 4,
+  retryWrites: false,
 });
 
 const connectDB = async () => {

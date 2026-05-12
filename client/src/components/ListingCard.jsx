@@ -82,22 +82,33 @@ const ListingCard = ({ listing }) => {
 
         {/*Footer for price and button*/}
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-baseline">
             <span className="text-2xl font-medium text-slate-800">
               {currency}
               {listing.price.toLocaleString()}
             </span>
           </div>
-          <button
-            onClick={() => {
-              navigate(`/listing/${listing.id}`);
-              scrollTo(0, 0);
-            }}
-            className="px-7 py-3 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
-          >
-            More Details
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => {
+                navigate(`/listing/${listing.id}`);
+                scrollTo(0, 0);
+              }}
+              className="px-5 py-3 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition"
+            >
+              More Details
+            </button>
+            <button
+              onClick={() => {
+                navigate(`/checkout/${listing.id}`);
+                scrollTo(0, 0);
+              }}
+              className="px-5 py-3 bg-emerald-600 text-white text-sm rounded-xl hover:bg-emerald-700 transition"
+            >
+              Buy Now
+            </button>
+          </div>
         </div>
       </div>
     </div>

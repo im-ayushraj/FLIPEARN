@@ -18,6 +18,7 @@ const STEPS = [
   { id: 2, label: 'Statistics', icon: <BarChart2 size={16} /> },
   { id: 3, label: 'Pricing', icon: <DollarSign size={16} /> },
   { id: 4, label: 'Images', icon: <ImagePlus size={16} /> },
+  { id: 5, label: 'Credentials', icon: <CheckCircle2 size={16} /> },
 ];
 
 const defaultForm = {
@@ -35,6 +36,7 @@ const defaultForm = {
   monetized: false,
   featured: false,
   images: [], // [{ url, isNew, file }]
+  credentials: [{ label: 'Email', value: '' }, { label: 'Password', value: '' }], // Array of { label, value }
 };
 
 const ManageListing = () => {
@@ -73,6 +75,7 @@ const ManageListing = () => {
           monetized: data.monetized || false,
           featured: data.featured || false,
           images: (data.images || []).map((url) => ({ url, isNew: false })),
+          credentials: [{ label: 'Email', value: '' }, { label: 'Password', value: '' }], // Initialize for edit
         });
       } catch (err) {
         toast.error(err.message);
@@ -119,12 +122,16 @@ const ManageListing = () => {
     if (step === 3) {
       if (!form.price) e.price = 'Price is required';
     }
+    if (step === 5) {
+      const hasValidCredentials = form.credentials.some(cred => cred.label.trim() && cred.value.trim());
+      if (!hasValidCredentials) e.credentials = 'At least one credential is required';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const nextStep = () => {
-    if (validateStep()) setStep(s => Math.min(s + 1, 4));
+    if (validateStep()) setStep(s => Math.min(s + 1, 5));
   };
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
@@ -143,14 +150,24 @@ const ManageListing = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeImage = (index) => {
-    setForm((prev) => {
-      const img = prev.images[index];
-      if (img?.isNew && img.url?.startsWith('blob:')) {
-        URL.revokeObjectURL(img.url);
-      }
-      return { ...prev, images: prev.images.filter((_, i) => i !== index) };
-    });
+  const addCredential = () => {
+    setForm(prev => ({ ...prev, credentials: [...prev.credentials, { label: '', value: '' }] }));
+  };
+
+  const updateCredential = (index, field, value) => {
+    setForm(prev => ({
+      ...prev,
+      credentials: prev.credentials.map((cred, i) =>
+        i === index ? { ...cred, [field]: value } : cred
+      )
+    }));
+  };
+
+  const removeCredential = (index) => {
+    setForm(prev => ({
+      ...prev,
+      credentials: prev.credentials.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSubmit = async () => {
@@ -172,6 +189,10 @@ const ManageListing = () => {
       if (form.description.trim()) payload.append('description', form.description.trim());
       payload.append('monetized', String(form.monetized));
       payload.append('featured', String(form.featured));
+
+      // Add credentials
+      const validCredentials = form.credentials.filter(cred => cred.label.trim() && cred.value.trim());
+      payload.append('originalCredential', JSON.stringify(validCredentials));
 
       const existingImages = form.images.filter((img) => !img.isNew).map((img) => img.url);
       if (isEdit) payload.append('existingImages', JSON.stringify(existingImages));
@@ -419,6 +440,71 @@ const ManageListing = () => {
               </div>
             )}
 
+            {/* Step 5: Credentials */}
+            {step === 5 && (
+              <div className="space-y-5">
+                <SectionTitle>Account Credentials</SectionTitle>
+                <p className="text-sm text-gray-500">Provide the login credentials for this account. These will be securely stored and delivered to the buyer after purchase.</p>
+                
+                <div className="space-y-3">
+                  {form.credentials.map((cred, index) => (
+                    <div key={index} className="flex gap-3 items-end">
+                      <div className="flex-1">
+                        <Field label={index === 0 ? "Credential Type" : ""}>
+                          <input
+                            type="text"
+                            value={cred.label}
+                            onChange={e => updateCredential(index, 'label', e.target.value)}
+                            placeholder="e.g. Email, Password, Username"
+                            className={inputCls()}
+                          />
+                        </Field>
+                      </div>
+                      <div className="flex-1">
+                        <Field label={index === 0 ? "Value" : ""}>
+                          <input
+                            type="password"
+                            value={cred.value}
+                            onChange={e => updateCredential(index, 'value', e.target.value)}
+                            placeholder="Enter credential value"
+                            className={inputCls()}
+                          />
+                        </Field>
+                      </div>
+                      {form.credentials.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeCredential(index)}
+                          className="p-2 text-gray-400 hover:text-red-500 transition mb-1"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {errors.credentials && <p className="text-xs text-red-500">{errors.credentials}</p>}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addCredential}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium transition"
+                >
+                  <CheckCircle2 size={16} /> Add Another Credential
+                </button>
+
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                  <div className="flex items-start gap-3">
+                    <Info size={16} className="text-amber-600 mt-0.5" />
+                    <div className="text-sm text-amber-800">
+                      <p className="font-medium mb-1">Important Security Notice</p>
+                      <p>These credentials will be delivered to the buyer after payment. Make sure all information is accurate and the account is ready for transfer.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
               {step > 1 ? (
@@ -430,7 +516,7 @@ const ManageListing = () => {
                 </button>
               ) : <div />}
 
-              {step < 4 ? (
+              {step < 5 ? (
                 <button
                   onClick={nextStep}
                   className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 active:scale-95 transition-all"
