@@ -139,6 +139,11 @@ const MyListings = () => {
 
 const ListingRow = ({ listing, currency, onEdit, onDelete }) => {
   const [imgError, setImgError] = useState(false);
+  const { user } = useUser();
+  const isOwner = user?.id === listing.ownerId?.id;
+  const isAdmin = user?.publicMetadata?.role === 'admin';
+  const isPending = listing.status === 'pending';
+  
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="flex flex-col sm:flex-row">
@@ -163,6 +168,9 @@ const ListingRow = ({ listing, currency, onEdit, onDelete }) => {
               <span className="text-xs font-medium bg-pink-50 text-pink-600 px-2.5 py-1 rounded-full capitalize border border-pink-100">{listing.niche}</span>
               {listing.verified  && <span className="flex items-center gap-1 text-xs font-medium bg-green-50 text-green-600 px-2 py-1 rounded-full border border-green-100"><BadgeCheck size={11} /> Verified</span>}
               {listing.monetized && <span className="flex items-center gap-1 text-xs font-medium bg-yellow-50 text-yellow-600 px-2 py-1 rounded-full border border-yellow-100"><Zap size={11} /> Monetized</span>}
+              {isPending && (
+                <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full border border-blue-100">⏳ Awaiting Verification</span>
+              )}
             </div>
             <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
               <span className="flex items-center gap-1"><Eye size={12} /> {listing.followers_count?.toLocaleString()} followers</span>
@@ -176,8 +184,19 @@ const ListingRow = ({ listing, currency, onEdit, onDelete }) => {
               <p className="text-xs text-gray-400">asking price</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={onEdit} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-xs font-medium hover:border-indigo-300 hover:text-indigo-600 transition"><Edit2 size={13} /> Edit</button>
-              <button onClick={onDelete} className="flex items-center gap-1.5 px-3 py-2 border border-red-100 text-red-500 rounded-xl text-xs font-medium hover:bg-red-50 transition"><Trash2 size={13} /> Delete</button>
+              {!isAdmin && isOwner && (
+                <>
+                  <button 
+                    onClick={onEdit} 
+                    disabled={isPending}
+                    className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-xs font-medium hover:border-indigo-300 hover:text-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-600" 
+                    title={isPending ? 'Cannot edit pending listings' : 'Edit listing'}
+                  >
+                    <Edit2 size={13} /> Edit
+                  </button>
+                  <button onClick={onDelete} className="flex items-center gap-1.5 px-3 py-2 border border-red-100 text-red-500 rounded-xl text-xs font-medium hover:bg-red-50 transition"><Trash2 size={13} /> Delete</button>
+                </>
+              )}
             </div>
           </div>
         </div>

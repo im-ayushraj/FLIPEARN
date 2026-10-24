@@ -25,9 +25,10 @@ const listingSchema = new mongoose.Schema({
   age_range: { type: String, required: true },
   status: { 
     type: String, 
-    enum: ['active', 'ban', 'sold', 'deleted', 'inactive'],
-    default: 'active' 
+    enum: ['pending', 'active', 'ban', 'sold', 'deleted', 'inactive', 'rejected'],
+    default: 'pending' 
   },
+  rejectionReason: { type: String },
   featured: { type: Boolean, default: false },
   images: [{ type: String }],
   platformAssured: { type: Boolean, default: false },

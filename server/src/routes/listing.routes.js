@@ -81,13 +81,13 @@ router.get('/', async (req, res) => {
 router.get('/my', requireAuth, async (req, res) => {
   const listings = await Listing.find({ 
     ownerId: req.auth.userId, 
-    $or: [{ status: 'active' }, { status: 'inactive' }, { status: 'sold' }] 
+    $or: [{ status: 'pending' }, { status: 'active' }, { status: 'inactive' }, { status: 'sold' }] 
   })
     .sort({ createdAt: -1 })
     .lean();
     
   res.json(listings.map(l => ({ ...l, id: l._id })));
-});
+})
 
 /* ─── GET /api/listings/:id ─────────────────────────────────
    Public — get single listing with owner info.
@@ -162,15 +162,23 @@ router.post('/', requireAuth, upload.array('images', 4), async (req, res) => {
     monetized:       monetized === 'true',
     featured:        featured  === 'true',
     images:          imageUrls,
+    status:          'pending',
   });
 
-  // Create credential record
+  // Create credential record and mark submission
   await Credential.create({
     listingId: listing._id,
     originalCredential: parsedCredentials,
   });
+  
+  // Update listing to mark credentials as submitted
+  const updated = await Listing.findByIdAndUpdate(
+    listing._id,
+    { isCredentialSubmitted: true },
+    { new: true }
+  );
 
-  res.status(201).json({ ...listing.toObject(), id: listing._id });
+  res.status(201).json({ ...updated.toObject(), id: updated._id });
 });
 
 /* ─── PUT /api/listings/:id ─────────────────────────────────

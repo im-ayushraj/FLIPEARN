@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BanknoteIcon, CheckIcon, LayoutDashboardIcon, ListIcon, Settings2Icon, WalletIcon } from 'lucide-react';
+import { BanknoteIcon, CheckIcon, LayoutDashboardIcon, ListIcon, Settings2Icon, WalletIcon, ClipboardCheckIcon } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 
 const AdminSidebar = () => {
@@ -7,9 +7,10 @@ const AdminSidebar = () => {
 
   const adminNavlinks = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboardIcon },
-    { name: 'Verify', path: '/admin/verify-credentials', icon: CheckIcon },
-    { name: 'Change', path: '/admin/change-credentials', icon: Settings2Icon },
-    { name: 'Listings', path: '/admin/list-listings', icon: ListIcon },
+    { name: 'Verify Listings', path: '/admin/verify-listings', icon: ClipboardCheckIcon },
+    { name: 'Verify Credentials', path: '/admin/verify-credentials', icon: CheckIcon },
+    { name: 'Change Credentials', path: '/admin/change-credentials', icon: Settings2Icon },
+    { name: 'All Listings', path: '/admin/list-listings', icon: ListIcon },
     { name: 'Transactions', path: '/admin/transactions', icon: BanknoteIcon },
     { name: 'Withdrawal', path: '/admin/withdrawal', icon: WalletIcon },
   ];

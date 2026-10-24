@@ -17,6 +17,7 @@ router.get('/dashboard', async (req, res) => {
   const [
     totalListings,
     activeListings,
+    pendingListings,
     totalUser,
     revenueAgg,
     recentListings,
@@ -24,6 +25,7 @@ router.get('/dashboard', async (req, res) => {
   ] = await Promise.all([
     Listing.countDocuments({ status: { $in: ['active', 'inactive', 'sold', 'ban'] } }),
     Listing.countDocuments({ status: 'active' }),
+    Listing.countDocuments({ status: 'pending' }),
     User.countDocuments(),
     Transaction.aggregate([
       { $match: { isPaid: true } },
@@ -40,6 +42,7 @@ router.get('/dashboard', async (req, res) => {
   res.json({
     totalListings,
     activeListings,
+    pendingListings,
     totalUser,
     totalRevenue:       revenueAgg[0]?.total ?? 0,
     recentListings:     recentListings.map(l => ({ ...l, id: l._id, owner: l.ownerId ? { ...l.ownerId, id: l.ownerId._id } : null })),
@@ -47,8 +50,30 @@ router.get('/dashboard', async (req, res) => {
   });
 });
 
+/* ─── GET /api/admin/listings/pending ────────────────────────
+   Pending listings awaiting verification.
+─────────────────────────────────────────────────────────── */
+router.get('/listings/pending', async (req, res) => {
+  const listings = await Listing.find({ status: 'pending' })
+    .populate('ownerId', 'name image email')
+    .sort({ createdAt: -1 })
+    .lean();
+  
+  const shaped = await Promise.all(listings.map(async (l) => {
+    const credential = await Credential.findOne({ listingId: l._id }).lean();
+    return {
+      ...l,
+      id: l._id,
+      owner: l.ownerId ? { ...l.ownerId, id: l.ownerId._id } : null,
+      hasCredentials: Boolean(credential),
+    };
+  }));
+  
+  res.json(shaped);
+});
+
 /* ─── GET /api/admin/listings ───────────────────────────────
-   All listings (any status) with owner info.
+   All listings (any status) with owner info and credential status.
 ─────────────────────────────────────────────────────────── */
 router.get('/listings', async (req, res) => {
   const listings = await Listing.find({ status: { $in: ['active', 'inactive', 'sold', 'ban'] } })
@@ -56,6 +81,87 @@ router.get('/listings', async (req, res) => {
     .sort({ createdAt: -1 })
     .lean();
   res.json(listings.map(l => ({ ...l, id: l._id, owner: l.ownerId ? { ...l.ownerId, id: l.ownerId._id } : null })));
+});
+
+/* ─── GET /api/admin/credentials/unverified ──────────────────
+   Listings with submitted credentials awaiting verification.
+─────────────────────────────────────────────────────────── */
+router.get('/credentials/unverified', async (req, res) => {
+  const listings = await Listing.find({ 
+    isCredentialSubmitted: true,
+    isCredentialVerified: false
+  })
+    .populate('ownerId', 'name image email')
+    .sort({ createdAt: -1 })
+    .lean();
+    
+  const shaped = await Promise.all(listings.map(async (l) => {
+    const credential = await Credential.findOne({ listingId: l._id }).lean();
+    return {
+      ...l,
+      id: l._id,
+      owner: l.ownerId ? { ...l.ownerId, id: l.ownerId._id } : null,
+      credentials: credential?.originalCredential || [],
+    };
+  }));
+  
+  res.json(shaped);
+});
+
+/* ─── GET /api/admin/credentials/pending-change ──────────────
+   Listings with verified credentials that haven't been changed.
+─────────────────────────────────────────────────────────── */
+router.get('/credentials/pending-change', async (req, res) => {
+  const listings = await Listing.find({ 
+    isCredentialVerified: true,
+    isCredentialChanged: false
+  })
+    .populate('ownerId', 'name image email')
+    .sort({ createdAt: -1 })
+    .lean();
+    
+  const shaped = await Promise.all(listings.map(async (l) => {
+    const credential = await Credential.findOne({ listingId: l._id }).lean();
+    return {
+      ...l,
+      id: l._id,
+      owner: l.ownerId ? { ...l.ownerId, id: l.ownerId._id } : null,
+      credentials: credential?.originalCredential || [],
+    };
+  }));
+  
+  res.json(shaped);
+});
+
+/* ─── PATCH /api/admin/listings/:id/verify ──────────────────
+   Verify and approve a pending listing.
+─────────────────────────────────────────────────────────── */
+router.patch('/listings/:id/verify', async (req, res) => {
+  const listing = await Listing.findByIdAndUpdate(
+    req.params.id,
+    { $set: { status: 'active' } },
+    { new: true }
+  ).lean();
+  
+  if (!listing) return res.status(404).json({ error: 'Listing not found' });
+  res.json({ ...listing, id: listing._id, message: 'Listing verified and now visible on marketplace' });
+});
+
+/* ─── PATCH /api/admin/listings/:id/reject ──────────────────
+   Reject a pending listing with reason.
+─────────────────────────────────────────────────────────── */
+router.patch('/listings/:id/reject', async (req, res) => {
+  const { reason } = req.body;
+  if (!reason) return res.status(400).json({ error: 'Rejection reason is required' });
+  
+  const listing = await Listing.findByIdAndUpdate(
+    req.params.id,
+    { $set: { status: 'rejected', rejectionReason: reason } },
+    { new: true }
+  ).lean();
+  
+  if (!listing) return res.status(404).json({ error: 'Listing not found' });
+  res.json({ ...listing, id: listing._id, message: 'Listing rejected' });
 });
 
 /* ─── PATCH /api/admin/listings/:id/status ──────────────────
@@ -73,6 +179,34 @@ router.patch('/listings/:id/status', async (req, res) => {
     { new: true }
   ).lean();
   res.json({ ...updated, id: updated._id });
+});
+
+/* ─── PATCH /api/admin/credentials/:id/verify ───────────────
+   Mark credentials as verified by admin.
+─────────────────────────────────────────────────────────── */
+router.patch('/credentials/:id/verify', async (req, res) => {
+  const updated = await Listing.findByIdAndUpdate(
+    req.params.id,
+    { isCredentialVerified: true },
+    { new: true }
+  ).lean();
+  
+  if (!updated) return res.status(404).json({ error: 'Listing not found' });
+  res.json({ ...updated, id: updated._id, message: 'Credentials verified' });
+});
+
+/* ─── PATCH /api/admin/credentials/:id/mark-changed ─────────
+   Mark credentials as changed by user.
+─────────────────────────────────────────────────────────── */
+router.patch('/credentials/:id/mark-changed', async (req, res) => {
+  const updated = await Listing.findByIdAndUpdate(
+    req.params.id,
+    { isCredentialChanged: true },
+    { new: true }
+  ).lean();
+  
+  if (!updated) return res.status(404).json({ error: 'Listing not found' });
+  res.json({ ...updated, id: updated._id, message: 'Credentials marked as changed' });
 });
 
 /* ─── GET /api/admin/transactions ───────────────────────────

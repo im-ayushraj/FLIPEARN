@@ -17,6 +17,7 @@ import Navbar from "./components/Navbar";
 import AdminLayout from "./pages/admin/Layout";
 import Dashboard from "./pages/admin/Dashboard";
 import AllListings from "./pages/admin/AllListings";
+import VerifyListings from "./pages/admin/VerifyListings";
 import CredentialVerify from "./pages/admin/CredentialVerify";
 import CredentialChange from "./pages/admin/CredentialChange";
 import Transactions from "./pages/admin/Transactions";
@@ -48,6 +49,7 @@ const App = () => {
         {/* Admin — nested under AdminLayout (has its own Clerk auth gate) */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="verify-listings" element={<VerifyListings />} />
           <Route path="verify-credentials" element={<CredentialVerify />} />
           <Route path="change-credentials" element={<CredentialChange />} />
           <Route path="list-listings" element={<AllListings />} />

@@ -1,30 +1,56 @@
 import AdminTitle from '../../components/admin/AdminTitle';
 import { useEffect, useState } from 'react';
 import CredentialVerifyModal from '../../components/admin/CredentialVerifyModal';
-import { Loader2Icon } from 'lucide-react';
-import { dummyListings } from '../../assets/assets';
+import { Loader2Icon, AlertCircle } from 'lucide-react';
 import { useAdminRefresh } from './Layout';
+import api from '../../lib/api';
+import toast from 'react-hot-toast';
 
 const CredentialVerify = () => {
     const { tick } = useAdminRefresh();
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [showModal, setShowModal] = useState(null);
 
     const fetchListings = async () => {
-        setLoading(true);
-        await new Promise(r => setTimeout(r, 300));
-        setListings(dummyListings.filter(l => !l.isCredentialVerified));
-        setLoading(false);
+        try {
+            setLoading(true);
+            const { data } = await api.get('/admin/credentials/unverified');
+            setListings(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => { fetchListings(); }, [tick]);
 
-    return loading ? (
+    const handleVerified = async (listingId) => {
+        try {
+            await api.patch(`/admin/credentials/${listingId}/verify`);
+            setListings(prev => prev.filter(l => l.id !== listingId));
+            toast.success('Credentials verified');
+        } catch (err) {
+            toast.error(err.message);
+        }
+    };
+
+    if (loading) return (
         <div className='flex items-center justify-center h-full'>
             <Loader2Icon className='animate-spin text-indigo-600 size-7' />
         </div>
-    ) : (
+    );
+
+    if (error) return (
+        <div className='flex items-center gap-3 text-red-500 p-4 bg-red-50 rounded-xl mb-4'>
+            <AlertCircle size={18} />
+            {error}
+        </div>
+    );
+
+    return (
         <div className='h-full'>
             {listings.length === 0 ? (
                 <div className='flex flex-col items-center justify-center text-center text-gray-600 h-64'>
@@ -55,7 +81,10 @@ const CredentialVerify = () => {
                                         <td className='px-4 py-3 capitalize'>{listing.platform}</td>
                                         <td className='px-4 py-3'>@{listing.username}</td>
                                         <td className='px-4 py-3'>
-                                            <button onClick={() => setShowModal(listing)} className='text-indigo-600 font-medium text-xs hover:underline'>
+                                            <button 
+                                                onClick={() => setShowModal(listing)} 
+                                                className='text-indigo-600 font-medium text-xs hover:underline'
+                                            >
                                                 Verify
                                             </button>
                                         </td>
@@ -65,7 +94,11 @@ const CredentialVerify = () => {
                         </table>
                     </div>
                     {showModal && (
-                        <CredentialVerifyModal listing={showModal} onClose={() => { fetchListings(); setShowModal(null); }} />
+                        <CredentialVerifyModal 
+                            listing={showModal} 
+                            onVerified={() => handleVerified(showModal.id)}
+                            onClose={() => setShowModal(null)} 
+                        />
                     )}
                 </>
             )}

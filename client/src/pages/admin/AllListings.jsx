@@ -21,10 +21,18 @@ const AllListings = () => {
     };
 
     useEffect(() => {
-        api.get('/admin/listings')
-            .then(r => setListings(r.data))
-            .catch(err => setError(err.message))
-            .finally(() => setLoading(false));
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const { data } = await api.get('/admin/listings');
+                setListings(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
     }, [tick]);
 
     const changeStatus = async (status, listing) => {
